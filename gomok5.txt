@@ -1,0 +1,164 @@
+import numpy as np
+from IPython.display import clear_output
+
+# Create the Gomoku board
+board_size = 15
+board = np.zeros((board_size, board_size), dtype=int)
+
+# Function to check if a player has won
+def check_win(board, player):
+    
+     # Checking rows and columns for five in a row
+    for i in range(board_size):
+        for j in range(board_size - 4):
+            row = board[i, j:j+5]
+            col = board[j:j+5, i]
+
+            # Immediate Win
+            if np.sum(row == player) == 5 or np.sum(col == player) == 5:
+                return True
+
+    # Checking diagonals
+    for i in range(board_size - 4):
+        for j in range(board_size - 4):
+            diagonal = board[i:i+5, j:j+5]
+            diagonal_rev = np.fliplr(diagonal)
+
+            # Immediate Win
+            if np.sum(np.diag(diagonal) == player) == 5 or np.sum(np.diag(diagonal_rev) == player) == 5:
+                return True
+
+    return False
+    
+    
+
+# Function for AI move
+def ai_move(board):
+    best_score = -float('inf')
+    best_move = None
+
+    for i in range(board_size):
+        for j in range(board_size):
+            
+            if board[i, j] == 0: #Checks if the cell is empty
+                
+                #Assume the AI makes a move and checks for an immediate win
+                board[i, j] = 1
+                if check_win(board, 1):
+                    return i, j  # Return the winning move immediately if found
+            
+                else:
+                    score = evaluate(board, 1)
+            
+                score = evaluate(board, 1)
+                
+                board[i, j] = 0
+
+                if score > best_score:
+                    best_score = score
+                    best_move = (i, j)
+    
+    return best_move
+
+# Scoring function to evaluate the board for the AI
+def evaluate(board, player):
+    ai_score = 0
+
+    # Check rows and columns for open threes and open fours
+    for i in range(board_size):
+        for j in range(board_size - 4):
+            row = board[i, j:j+5]
+            col = board[j:j+5, i]
+            
+            # Open Fours
+            if np.sum(row == player) == 4 and np.sum(row == 0) == 1:
+                ai_score += 500
+            elif np.sum(col == player) == 4 and np.sum(col == 0) == 1:
+                ai_score += 500
+
+            # Open Threes
+            if np.sum(row == player) == 3 and np.sum(row == 0) == 2:
+                ai_score += 50
+            elif np.sum(col == player) == 3 and np.sum(col == 0) == 2:
+                ai_score += 50
+            
+             # Reverse direction
+        row_rev = board[i, j:j-5:-1]
+        col_rev = board[j:j-5:-1, i]
+
+        # Open Fours (reverse)
+        if np.sum(row_rev == player) == 4 and np.sum(row_rev == 0) == 1:
+            ai_score += 500
+        elif np.sum(col_rev == player) == 4 and np.sum(col_rev == 0) == 1:
+            ai_score += 500
+
+        # Open Threes (reverse)
+        if np.sum(row_rev == player) == 3 and np.sum(row_rev == 0) == 2:
+            ai_score += 50
+        elif np.sum(col_rev == player) == 3 and np.sum(col_rev == 0) == 2:
+            ai_score += 50
+
+    # Check diagonals for open threes and open fours
+    for i in range(board_size - 4):
+        for j in range(board_size - 4):
+            diagonal = board[i:i+5, j:j+5]
+            diagonal_rev = np.fliplr(diagonal)
+            
+            # Open Fours
+            if np.sum(np.diag(diagonal) == player) == 4 and np.sum(np.diag(diagonal) == 0) == 1:
+                ai_score += 500
+            elif np.sum(np.diag(diagonal_rev) == player) == 4 and np.sum(np.diag(diagonal_rev) == 0) == 1:
+                ai_score += 500
+
+            # Open Threes
+            if np.sum(np.diag(diagonal) == player) == 3 and np.sum(np.diag(diagonal) == 0) == 2:
+                ai_score += 50
+            elif np.sum(np.diag(diagonal_rev) == player) == 3 and np.sum(np.diag(diagonal_rev) == 0) == 2:
+                ai_score += 50
+
+    # Middle prioritization
+    middle = board_size // 2
+    for i in range(board_size):
+        for j in range(board_size):
+            if board[i, j] == 1:  # AI's pieces
+                ai_score += 5 - abs(middle - i) - abs(middle - j)
+            elif board[i, j] == 2:  # Opponent's pieces
+                ai_score -= 5 - abs(middle - i) - abs(middle - j)
+
+    return ai_score
+    
+    
+
+# Function to display the board
+def display_board(board):
+    clear_output()
+    for row in board:
+        print(" ".join(map(str, row)).replace('0', '_'))  # Replace 0 with _
+    print()
+
+# Define the updated main game loop with score calculation
+current_player = 1
+moves_left = board_size*board_size
+while True:
+    display_board(board)
+    
+    if moves_left == 0:
+        print("The game is a draw!")
+        break
+    
+    if current_player == 1:
+        row, col = map(int, input("Enter your move (row col): ").split())
+        if board[row][col] == 0:
+            board[row][col] = 1
+            if check_win(board, 1):
+                print("Congratulations! You win!")
+                break
+            current_player = 0
+    else:
+        print("AI is making a move...")
+        ai_row, ai_col = ai_move(board)
+        board[ai_row][ai_col] = 2
+        if check_win(board, 2):
+            print("AI wins!")
+            break
+        current_player = 1
